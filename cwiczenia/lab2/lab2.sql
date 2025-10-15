@@ -131,3 +131,60 @@ left join employees e on d.department_id = e.department_id
 group by d.department_name
 order by employee_number desc;
 
+// 14.
+select first_name, last_name 
+from employees
+where salary < (
+    select min(e.salary) 
+    from employees e
+    join departments d on e.department_id = d.department_id 
+    where d.department_name = 'IT'
+);
+
+// 15.
+select distinct department_name 
+from departments d
+join employees e on e.department_id = d.department_id
+where e.salary > (select round(avg(salary)) from employees);
+
+// 16.
+select j.job_title, avg(e.salary) as avg_salary
+from employees e
+join jobs j on e.job_id = j.job_id
+group by j.job_title
+order by avg_salary desc
+fetch first 5 row only;
+
+// 17.
+select r.region_name, count(distinct c.country_id) as country_count, count(e.employee_id) as employee_count
+from regions r
+join countries c on r.region_id = c.region_id
+join locations l on c.country_id = l.country_id
+join departments d on l.location_id = d.location_id
+join employees e on d.department_id = e.department_id
+group by r.region_name;
+
+// check country count
+select * from departments d
+join locations l on d.location_id = l.location_id;
+
+// 18.
+select e.first_name, e.last_name
+from employees e
+join employees m on e.manager_id = m.employee_id
+where e.salary > m.salary;
+
+// 19.
+select extract(month from hire_date) as hire_month, count(hire_date)
+from employees
+group by extract(month from hire_date)
+order by hire_month;
+
+// 20.
+select round(avg(salary)), d.department_name
+from employees e
+join departments d on e.department_id = d.department_id
+group by d.department_name
+order by round(avg(salary)) desc
+fetch first 5 row only;
+
