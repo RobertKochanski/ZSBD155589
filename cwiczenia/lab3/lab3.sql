@@ -73,6 +73,7 @@ insert into salary_5000_12000_with_check
 values (209, 'Andrzej', 'Kowalski', 9999, 'FI_ACCOUNT', 'AKowalski', DATE '2020-07-01');
 
 // a2.
+// "naruszenie klauzuli WHERE dla perspektywy z WITH CHECK OPTION"
 insert into salary_5000_12000_with_check
 values (208, 'Andrzej', 'Kowalski', 20000, 'FI_ACCOUNT', 'AKowalski', DATE '2020-07-01');
 
