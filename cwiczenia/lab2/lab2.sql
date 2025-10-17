@@ -44,17 +44,17 @@ order by last_name;
 
 // 2.
 select * from employees;
-select hire_date, last_name, salary
+select hire_date, last_name, &user_choice as user_choice
 from employees
 where hire_date between '05/01/01' and '05/12/31'
     and manager_id is not null
-order by employees.salary;
+order by user_choice;
 
 // 3.
 select (first_name||' '||last_name) as person, salary, phone_number 
 from employees
 where last_name like '__e%' 
-    and first_name like '%ll%'
+    and first_name like '&user_choice'
 order by person desc, salary asc;
 
 // 4.
