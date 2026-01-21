@@ -1,5 +1,17 @@
--- wyczyść dane z tabeli i wgraj je z pliku .csv do project_games_stage
-TRUNCATE TABLE project_games_stage;
+-- CZYSZCZENIE DANYCH Z BAZY 
+DELETE FROM project_game_categories;
+DELETE FROM project_game_platforms;
+DELETE FROM project_sales;
+DELETE FROM project_games;
+DELETE FROM project_categories;
+DELETE FROM project_platforms;
+DELETE FROM project_publishers;
+DELETE FROM project_developers;
+DELETE FROM project_games_stage;
+DELETE FROM project_data_archive;
+DELETE FROM project_load_logs;
+
+
 
 select * from project_games_stage;
 
@@ -13,21 +25,12 @@ end;
 SELECT game_id, title, release_date
 FROM project_games;
 
--- czy zduplikowane dane wgrały się prawidłowo (były 2x wiedźminy w pliku)
-SELECT title, release_date, COUNT(*)
-FROM project_games
-GROUP BY title, release_date;
-
 -- czy platformy i kategorie wgrały się prawidłowo
-SELECT g.title, p.name AS platform
-FROM project_games g
-JOIN project_game_platforms gp ON g.game_id = gp.game_id
-JOIN project_platforms p ON gp.platform_id = p.platform_id;
+SELECT *
+FROM project_platforms;
 
-SELECT g.title, c.name AS platform
-FROM project_games g
-JOIN project_game_categories gc ON g.game_id = gc.game_id
-JOIN project_categories c ON gc.category_id = c.category_id;
+SELECT *
+FROM project_categories;
 
 -- czy dane zostały zarchiwizowane
 SELECT *
@@ -37,3 +40,9 @@ FROM project_data_archive;
 select * 
 from project_load_logs
 order by event_time;
+
+-- czy dane sales zostały wgrane
+select sale_id, region, units_sold, revenue, sale_year, g.title, g.release_date, g.rating
+from project_sales s
+join project_games g on s.game_id = g.game_id
+order by g.title;
