@@ -115,6 +115,11 @@ create table project_games_stage (
     sale_year     number(4)
 );
 
+alter table project_games_stage add (
+    developer_founded_year number(4),
+    publisher_founded_year number(4)
+);
+
 create or replace procedure project_load_games_etl is
     v_dev_id        project_developers.developer_id%type;
     v_pub_id        project_publishers.publisher_id%type;
@@ -149,6 +154,30 @@ begin
             v_cnt_errors := v_cnt_errors + 1;
             insert into project_load_logs(event_type, message)
             values ('ERROR', 'Nieprawidłowy rating dla gry: ' || r.title);
+            continue;
+        end if;
+        
+        if r.developer_founded_year is not null
+           and (r.developer_founded_year < 1800
+                or r.developer_founded_year > extract(year from sysdate)) then
+            v_cnt_errors := v_cnt_errors + 1;
+            insert into project_load_logs(event_type, message)
+            values (
+                'ERROR',
+                'Nieprawidłowy rok założenia developera: ' || r.developer
+            );
+            continue;
+        end if;
+        
+        if r.publisher_founded_year is not null
+           and (r.publisher_founded_year < 1800
+                or r.publisher_founded_year > extract(year from sysdate)) then
+            v_cnt_errors := v_cnt_errors + 1;
+            insert into project_load_logs(event_type, message)
+            values (
+                'ERROR',
+                'Nieprawidłowy rok założenia wydawcy: ' || r.publisher
+            );
             continue;
         end if;
                 
@@ -203,7 +232,9 @@ begin
                 'release_date' value r.release_date,
                 'rating' value r.rating,
                 'developer' value r.developer,
+                'developer_founded_year' value r.developer_founded_year,
                 'publisher' value r.publisher,
+                'publisher_founded_year' value r.publisher_founded_year,
                 'platform' value r.platform,
                 'category' value r.category,
                 'region' value r.region,
@@ -220,10 +251,18 @@ begin
             select developer_id into v_dev_id
             from project_developers
             where name = r.developer;
+        
+            -- uzupełnienie founded_year, jeśli wcześniej był NULL
+            update project_developers
+            set founded_year = r.developer_founded_year
+            where developer_id = v_dev_id
+              and founded_year is null
+              and r.developer_founded_year is not null;
+        
         exception
             when no_data_found then
-                insert into project_developers(name)
-                values (r.developer)
+                insert into project_developers(name, founded_year)
+                values (r.developer, r.developer_founded_year)
                 returning developer_id into v_dev_id;
         end;
 
@@ -234,10 +273,17 @@ begin
             select publisher_id into v_pub_id
             from project_publishers
             where name = r.publisher;
+        
+            update project_publishers
+            set founded_year = r.publisher_founded_year
+            where publisher_id = v_pub_id
+              and founded_year is null
+              and r.publisher_founded_year is not null;
+        
         exception
             when no_data_found then
-                insert into project_publishers(name)
-                values (r.publisher)
+                insert into project_publishers(name, founded_year)
+                values (r.publisher, r.publisher_founded_year)
                 returning publisher_id into v_pub_id;
         end;
 

@@ -1,7 +1,7 @@
-title;release_date;rating;developer;publisher;platform;category;region;units_sold;revenue;sale_year
-The Witcher 3;19.05.2015;93;CD Projekt Red;CD Projekt;PC;RPG;EU;3500000;140000000;2015
-The Witcher 3;19.05.2015;93;CD Projekt Red;CD Projekt;PS4;RPG;NA;4200000;168000000;2016
-Cyberpunk 2077;10.12.2020;86;CD Projekt Red;CD Projekt;PC;Action;Global;13000000;780000000;2020
-God of War;20.04.2018;94;Santa Monica Studio;Sony Interactive Entertainment;PS4;Action;NA;5000000;250000000;2018
-Zelda BOTW;3.03.2017;97;Nintendo EPD;Nintendo;Switch;Adventure;Global;3000000;180000000;2017
-;1.01.2021;;Unknown Dev;Unknown Pub;PC;Action;;;;
+title;release_date;rating;developer;developer_founded_year;publisher;publisher_founded_year;platform;category;region;units_sold;revenue;sale_year
+The Witcher 3;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;4500000;180000000;2015
+The Witcher 3;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PS4;RPG;NA;4200000;168000000;2016
+Cyberpunk 2077;10.12.2020;86;CD Projekt Red;2002;CD Projekt;1994;PC;Action;Global;13000000;780000000;2020
+God of War;20.04.2018;94;Santa Monica Studio;1999;Sony Interactive Entertainment;1993;PS4;Action;NA;5000000;250000000;2018
+Zelda BOTW;3.03.2017;97;Nintendo EPD;2015;Nintendo;1889;Switch;Adventure;Global;3000000;180000000;2017
+;1.01.2021;;Unknown Dev;3000;Unknown Pub;1234;PC;Action;;;;
