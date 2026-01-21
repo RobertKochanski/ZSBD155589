@@ -56,13 +56,13 @@ create table project_sales (
     sale_year number(4)
 );
 
-ALTER TABLE project_sales
-ADD CONSTRAINT project_uk_sales
-UNIQUE (game_id, region, sale_year);
+alter table project_sales
+add constraint project_uk_sales
+unique (game_id, region, sale_year);
 
-ALTER TABLE project_sales MODIFY (
-    region NOT NULL,
-    sale_year NOT NULL
+alter table project_sales modify (
+    region not null,
+    sale_year not null
 );
 
 ------------------------------------------------------------------
@@ -115,264 +115,264 @@ create table project_games_stage (
     sale_year     number(4)
 );
 
-CREATE OR REPLACE PROCEDURE project_load_games_etl IS
-    v_dev_id        project_developers.developer_id%TYPE;
-    v_pub_id        project_publishers.publisher_id%TYPE;
-    v_game_id       project_games.game_id%TYPE;
-    v_release_date  DATE;
+create or replace procedure project_load_games_etl is
+    v_dev_id        project_developers.developer_id%type;
+    v_pub_id        project_publishers.publisher_id%type;
+    v_game_id       project_games.game_id%type;
+    v_release_date  date;
     
-    v_game_status   VARCHAR2(20);
+    v_game_status   varchar2(20);
     
-    v_cnt_inserted_games NUMBER := 0;
-    v_cnt_inserted_sales NUMBER := 0;
-    v_cnt_skipped_games  NUMBER := 0;
-    v_cnt_skipped_sales  NUMBER := 0;
-    v_cnt_warnings NUMBER := 0;
-    v_cnt_errors   NUMBER := 0;
+    v_cnt_inserted_games number := 0;
+    v_cnt_inserted_sales number := 0;
+    v_cnt_skipped_games  number := 0;
+    v_cnt_skipped_sales  number := 0;
+    v_cnt_warnings number := 0;
+    v_cnt_errors   number := 0;
     
-    v_error_msg VARCHAR2(4000);
-BEGIN
-    FOR r IN (SELECT * FROM project_games_stage) LOOP
-        v_game_status := NULL;
+    v_error_msg varchar2(4000);
+begin
+    for r in (select * from project_games_stage) loop
+        v_game_status := null;
 
         ------------------------------------------------------------------
         -- WALIDACJA PODSTAWOWA
         ------------------------------------------------------------------
-        IF r.title IS NULL THEN
+        if r.title is null then
             v_cnt_errors := v_cnt_errors + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES ('ERROR', 'Brak tytułu gry');
-            CONTINUE;
-        END IF;
+            insert into project_load_logs(event_type, message)
+            values ('ERROR', 'Brak tytułu gry');
+            continue;
+        end if;
         
-        IF r.rating IS NOT NULL AND (r.rating < 0 OR r.rating > 100) THEN
+        if r.rating is not null and (r.rating < 0 or r.rating > 100) then
             v_cnt_errors := v_cnt_errors + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES ('ERROR', 'Nieprawidłowy rating dla gry: ' || r.title);
-            CONTINUE;
-        END IF;
+            insert into project_load_logs(event_type, message)
+            values ('ERROR', 'Nieprawidłowy rating dla gry: ' || r.title);
+            continue;
+        end if;
                 
-		IF r.developer IS NULL THEN
+		if r.developer is null then
             v_cnt_warnings := v_cnt_warnings + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES ('WARNING', 'Brak developera');
-            CONTINUE;
-        END IF;
+            insert into project_load_logs(event_type, message)
+            values ('WARNING', 'Brak developera');
+            continue;
+        end if;
 		
-		IF r.publisher IS NULL THEN
+		if r.publisher is null then
             v_cnt_warnings := v_cnt_warnings + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES ('WARNING', 'Brak wydawcy');
-            CONTINUE;
-        END IF;
+            insert into project_load_logs(event_type, message)
+            values ('WARNING', 'Brak wydawcy');
+            continue;
+        end if;
 
         ------------------------------------------------------------------
         -- KONWERSJA DATY
         ------------------------------------------------------------------
-        v_release_date := NULL;
+        v_release_date := null;
 
-        BEGIN
-            IF r.release_date IS NOT NULL THEN
-                IF REGEXP_LIKE(r.release_date, '^\d{4}-\d{2}-\d{2}$') THEN
-                    v_release_date := TO_DATE(r.release_date, 'YYYY-MM-DD');
-                ELSIF REGEXP_LIKE(r.release_date, '^\d{1,2}\.\d{1,2}\.\d{4}$') THEN
-                    v_release_date := TO_DATE(r.release_date, 'DD.MM.YYYY');
-                ELSE
+        begin
+            if r.release_date is not null then
+                if regexp_like(r.release_date, '^\d{4}-\d{2}-\d{2}$') then
+                    v_release_date := to_date(r.release_date, 'YYYY-MM-DD');
+                elsif regexp_like(r.release_date, '^\d{1,2}\.\d{1,2}\.\d{4}$') then
+                    v_release_date := to_date(r.release_date, 'DD.MM.YYYY');
+                else
                     v_cnt_warnings := v_cnt_warnings + 1;
-                    INSERT INTO project_load_logs(event_type, message)
-                    VALUES ('WARNING', 'Nieznany format daty: ' || r.release_date);
-                END IF;
-            END IF;
-        EXCEPTION
-            WHEN OTHERS THEN
+                    insert into project_load_logs(event_type, message)
+                    values ('WARNING', 'Nieznany format daty: ' || r.release_date);
+                end if;
+            end if;
+        exception
+            when others then
                 v_cnt_errors := v_cnt_errors + 1;
-                INSERT INTO project_load_logs(event_type, message)
-                VALUES ('ERROR', 'Błąd konwersji daty: ' || r.release_date);
-                CONTINUE;
-        END;
+                insert into project_load_logs(event_type, message)
+                values ('ERROR', 'Błąd konwersji daty: ' || r.release_date);
+                continue;
+        end;
 
         ------------------------------------------------------------------
         -- ARCHIWIZACJA DANYCH ŹRÓDŁOWYCH
         ------------------------------------------------------------------
-        INSERT INTO project_data_archive(source_type, source_name, raw_data)
-        VALUES (
+        insert into project_data_archive(source_type, source_name, raw_data)
+        values (
             'CSV',
             'games.csv',
-            JSON_OBJECT(
-                'title' VALUE r.title,
-                'release_date' VALUE r.release_date,
-                'rating' VALUE r.rating,
-                'developer' VALUE r.developer,
-                'publisher' VALUE r.publisher,
-                'platform' VALUE r.platform,
-                'category' VALUE r.category,
-                'region' VALUE r.region,
-                'units_sold' VALUE r.units_sold,
-                'revenue' VALUE r.revenue,
-                'sale_year' VALUE r.sale_year
+            json_object(
+                'title' value r.title,
+                'release_date' value r.release_date,
+                'rating' value r.rating,
+                'developer' value r.developer,
+                'publisher' value r.publisher,
+                'platform' value r.platform,
+                'category' value r.category,
+                'region' value r.region,
+                'units_sold' value r.units_sold,
+                'revenue' value r.revenue,
+                'sale_year' value r.sale_year
             )
         );
 
         ------------------------------------------------------------------
         -- DEVELOPER
         ------------------------------------------------------------------
-        BEGIN
-            SELECT developer_id INTO v_dev_id
-            FROM project_developers
-            WHERE name = r.developer;
-        EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-                INSERT INTO project_developers(name)
-                VALUES (r.developer)
-                RETURNING developer_id INTO v_dev_id;
-        END;
+        begin
+            select developer_id into v_dev_id
+            from project_developers
+            where name = r.developer;
+        exception
+            when no_data_found then
+                insert into project_developers(name)
+                values (r.developer)
+                returning developer_id into v_dev_id;
+        end;
 
         ------------------------------------------------------------------
         -- PUBLISHER
         ------------------------------------------------------------------
-        BEGIN
-            SELECT publisher_id INTO v_pub_id
-            FROM project_publishers
-            WHERE name = r.publisher;
-        EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-                INSERT INTO project_publishers(name)
-                VALUES (r.publisher)
-                RETURNING publisher_id INTO v_pub_id;
-        END;
+        begin
+            select publisher_id into v_pub_id
+            from project_publishers
+            where name = r.publisher;
+        exception
+            when no_data_found then
+                insert into project_publishers(name)
+                values (r.publisher)
+                returning publisher_id into v_pub_id;
+        end;
 
         ------------------------------------------------------------------
         -- GAME
         ------------------------------------------------------------------
-        BEGIN
-            SELECT game_id INTO v_game_id
-            FROM project_games
-            WHERE title = r.title
-              AND release_date = v_release_date;
+        begin
+            select game_id into v_game_id
+            from project_games
+            where title = r.title
+              and release_date = v_release_date;
         
             v_game_status := 'SKIPPED';
-        EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-                INSERT INTO project_games(
+        exception
+            when no_data_found then
+                insert into project_games(
                     title, release_date, rating, developer_id, publisher_id
                 )
-                VALUES (
+                values (
                     r.title, v_release_date, r.rating, v_dev_id, v_pub_id
                 )
-                RETURNING game_id INTO v_game_id;
+                returning game_id into v_game_id;
         
                 v_game_status := 'INSERTED';
-        END;
+        end;
 
         ------------------------------------------------------------------
         -- PLATFORM
         ------------------------------------------------------------------
-        MERGE INTO project_platforms p
-        USING (SELECT r.platform AS name FROM dual) src
-        ON (p.name = src.name)
-        WHEN NOT MATCHED THEN
-            INSERT (name) VALUES (src.name);
+        merge into project_platforms p
+        using (select r.platform as name from dual) src
+        on (p.name = src.name)
+        when not matched then
+            insert (name) values (src.name);
 
-        INSERT INTO project_game_platforms (game_id, platform_id)
-        SELECT v_game_id, platform_id
-        FROM project_platforms
-        WHERE name = r.platform
-          AND NOT EXISTS (
-              SELECT 1
-              FROM project_game_platforms
-              WHERE game_id = v_game_id
-                AND platform_id = project_platforms.platform_id
+        insert into project_game_platforms (game_id, platform_id)
+        select v_game_id, platform_id
+        from project_platforms
+        where name = r.platform
+          and not exists (
+              select 1
+              from project_game_platforms
+              where game_id = v_game_id
+                and platform_id = project_platforms.platform_id
           );
 
         ------------------------------------------------------------------
         -- CATEGORY
         ------------------------------------------------------------------
-        MERGE INTO project_categories c
-        USING (SELECT r.category AS name FROM dual) src
-        ON (c.name = src.name)
-        WHEN NOT MATCHED THEN
-            INSERT (name) VALUES (src.name);
+        merge into project_categories c
+        using (select r.category as name from dual) src
+        on (c.name = src.name)
+        when not matched then
+            insert (name) values (src.name);
 
-        INSERT INTO project_game_categories (game_id, category_id)
-        SELECT v_game_id, category_id
-        FROM project_categories
-        WHERE name = r.category
-          AND NOT EXISTS (
-              SELECT 1
-              FROM project_game_categories
-              WHERE game_id = v_game_id
-                AND category_id = project_categories.category_id
+        insert into project_game_categories (game_id, category_id)
+        select v_game_id, category_id
+        from project_categories
+        where name = r.category
+          and not exists (
+              select 1
+              from project_game_categories
+              where game_id = v_game_id
+                and category_id = project_categories.category_id
           );
         
         ------------------------------------------------------------------
         -- SALES
         ------------------------------------------------------------------
-        IF r.units_sold IS NOT NULL OR r.revenue IS NOT NULL THEN
-            MERGE INTO project_sales s
-            USING (
-                SELECT
-                    v_game_id    AS game_id,
-                    r.region     AS region,
-                    r.sale_year  AS sale_year,
-                    r.units_sold AS units_sold,
-                    r.revenue    AS revenue
-                FROM dual
+        if r.units_sold is not null or r.revenue is not null then
+            merge into project_sales s
+            using (
+                select
+                    v_game_id    as game_id,
+                    r.region     as region,
+                    r.sale_year  as sale_year,
+                    r.units_sold as units_sold,
+                    r.revenue    as revenue
+                from dual
             ) src
-            ON (
+            on (
                 s.game_id   = src.game_id
-                AND s.region = src.region
-                AND s.sale_year = src.sale_year
+                and s.region = src.region
+                and s.sale_year = src.sale_year
             )
-            WHEN NOT MATCHED THEN
-                INSERT (
+            when not matched then
+                insert (
                     game_id, region, sale_year, units_sold, revenue
                 )
-                VALUES (
+                values (
                     src.game_id, src.region, src.sale_year,
-                    NVL(src.units_sold, 0),
-                    NVL(src.revenue, 0)
+                    nvl(src.units_sold, 0),
+                    nvl(src.revenue, 0)
                 );
             
-            IF SQL%ROWCOUNT = 1 THEN
+            if sql%rowcount = 1 then
                 v_cnt_inserted_sales := v_cnt_inserted_sales + 1;
-                INSERT INTO project_load_logs(event_type, message)
-                VALUES (
+                insert into project_load_logs(event_type, message)
+                values (
                     'INFO',
                     'Dodano sprzedaż: ' || r.title || ', ' || r.region || ', ' || r.sale_year
                 );
-            ELSE
+            else
                 v_cnt_skipped_sales := v_cnt_skipped_sales + 1;
-                INSERT INTO project_load_logs(event_type, message)
-                VALUES (
+                insert into project_load_logs(event_type, message)
+                values (
                     'INFO',
                     'Sprzedaż już istniała – pominięta: ' || r.title || ', ' || r.region || ', ' || r.sale_year
                 );
-            END IF;
-        END IF;
+            end if;
+        end if;
 
         ------------------------------------------------------------------
         -- LOG OK
         ------------------------------------------------------------------
-        IF v_game_status = 'INSERTED' THEN
+        if v_game_status = 'INSERTED' then
             v_cnt_inserted_games := v_cnt_inserted_games + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES (
+            insert into project_load_logs(event_type, message)
+            values (
                 'INFO',
                 'Dodano nową grę: ' || r.title || ' (' || r.platform || ')'
             );
-        ELSIF v_game_status = 'SKIPPED' THEN
+        elsif v_game_status = 'SKIPPED' then
             v_cnt_skipped_games := v_cnt_skipped_games + 1;
-            INSERT INTO project_load_logs(event_type, message)
-            VALUES (
+            insert into project_load_logs(event_type, message)
+            values (
                 'INFO',
                 'Gra już istniała – pominięta: ' || r.title || ' (' || r.platform || ')'
             );
-        END IF;
+        end if;
 
-    END LOOP;
+    end loop;
     
-    INSERT INTO project_load_logs(event_type, message)
-    VALUES (
+    insert into project_load_logs(event_type, message)
+    values (
         'INFO',
         'ETL summary: inserted games=' || v_cnt_inserted_games ||
         ', inserted sales=' || v_cnt_inserted_sales ||
@@ -382,21 +382,21 @@ BEGIN
         ', errors=' || v_cnt_errors
     );
 
-    COMMIT;
+    commit;
     
     --EXECUTE IMMEDIATE 'TRUNCATE TABLE project_games_stage';
 
-EXCEPTION
-    WHEN OTHERS THEN
-        v_error_msg := SQLERRM;
-        INSERT INTO project_load_logs(event_type, message)
-        VALUES (
+exception
+    when others then
+        v_error_msg := sqlerrm;
+        insert into project_load_logs(event_type, message)
+        values (
             'ERROR',
             'ETL aborted: ' || v_error_msg
         );
-        ROLLBACK;
-        RAISE;
-END;
+        rollback;
+        raise;
+end;
 /
 
 

@@ -1,15 +1,15 @@
 -- CZYSZCZENIE DANYCH Z BAZY 
-DELETE FROM project_game_categories;
-DELETE FROM project_game_platforms;
-DELETE FROM project_sales;
-DELETE FROM project_games;
-DELETE FROM project_categories;
-DELETE FROM project_platforms;
-DELETE FROM project_publishers;
-DELETE FROM project_developers;
-DELETE FROM project_games_stage;
-DELETE FROM project_data_archive;
-DELETE FROM project_load_logs;
+delete from project_game_categories;
+delete from project_game_platforms;
+delete from project_sales;
+delete from project_games;
+delete from project_categories;
+delete from project_platforms;
+delete from project_publishers;
+delete from project_developers;
+delete from project_games_stage;
+delete from project_data_archive;
+delete from project_load_logs;
 
 
 
@@ -22,19 +22,19 @@ end;
 /
 
 -- czy dane się załadowały
-SELECT game_id, title, release_date
-FROM project_games;
+select game_id, title, release_date
+from project_games;
 
 -- czy platformy i kategorie wgrały się prawidłowo
-SELECT *
-FROM project_platforms;
+select *
+from project_platforms;
 
-SELECT *
-FROM project_categories;
+select *
+from project_categories;
 
 -- czy dane zostały zarchiwizowane
-SELECT *
-FROM project_data_archive;
+select *
+from project_data_archive;
 
 -- czy logi się zapisały
 select * 
