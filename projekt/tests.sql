@@ -49,29 +49,29 @@ order by g.title;
 
 -- czy procedura dodawania gry działa
 begin
+    project_add_game(
+        p_title        => 'Test Game 1',
+        p_release_date => date '2024-05-10',
+        p_rating       => 85,
+        p_developer_id => 1,
+        p_publisher_id => 1
+    );
+    
 --    project_add_game(
---        p_title        => 'Test Game 1',
+--        p_title        => 'Bad rating game',
 --        p_release_date => date '2024-05-10',
---        p_rating       => 85,
+--        p_rating       => 111,
 --        p_developer_id => 47,
 --        p_publisher_id => 42
 --    );
-    
-    project_add_game(
-        p_title        => 'Bad rating game',
-        p_release_date => date '2024-05-10',
-        p_rating       => 111,
-        p_developer_id => 47,
-        p_publisher_id => 42
-    );
 end;
 /
 
 -- czy procedura zmiany ratingu gry działa
 begin
     project_update_game_rating(
-        p_game_id       => 65,
-        p_new_rating    => 94
+        p_game_id       => 9,
+        p_new_rating    => 12
     );
 end;
 /
@@ -81,14 +81,14 @@ select * from project_games where title like 'Test Game 1';
 
 begin
     project_delete_game(
-        p_game_id   => 68
+        p_game_id   => 11
     );
 end;
 /
 
 
 -- funkcje
-select project_get_avg_rating_by_dev(47) as avg_rating
+select project_get_avg_rating_by_dev(1) as avg_rating
 from project_developers
 where name='CD Projekt Red';
 
@@ -99,11 +99,11 @@ from project_developers
 where name='Empty Dev';
 
 
-select project_get_game_total_revenue(65)
+select project_get_game_total_revenue(1) as game_total_revenue
 from project_games
 where title = 'The Witcher 3: Wild Hunt';
 
-select project_get_game_platform_count(65)
+select project_get_game_platform_count(1)
 from project_games
 where title like 'The Witcher%';
 
@@ -138,6 +138,8 @@ begin
     project_build_sales_summary('YEAR', 2022);
 end;
 /
+
+select * from project_sales_summary;
 
 select period_year, sum(total_revenue)
 from project_sales_summary
@@ -175,11 +177,11 @@ where period_type='YEAR'
 group by period_value, period_type, period_year;
 
 
--- miesięczne zestawienie z 2022 roku dla gry o id 30
+-- miesięczne zestawienie z 2022 roku dla gry o id
 begin
-    project_build_sales_summary('MONTH', 2022, 30);
+    project_build_sales_summary('MONTH', 2022, 1);
 end;
 /
 select period_value, period_type, period_year, sum(total_revenue) from project_sales_summary
-where period_type='MONTH' and game_id = 30
+where period_type='MONTH' and game_id = 1
 group by period_value, period_type, period_year;

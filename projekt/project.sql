@@ -179,60 +179,27 @@ begin
         ------------------------------------------------------------------
         if r.title is null then
             v_cnt_errors := v_cnt_errors + 1;
-            insert into project_load_logs(event_type, message)
-            values ('ERROR', 'Brak tytułu gry');
-            continue;
-        end if;
-        
-        if r.rating is not null and r.rating not between 0 and 100 then
-            v_cnt_errors := v_cnt_errors + 1;
-            insert into project_load_logs(event_type, message)
-            values ('ERROR', 'Nieprawidłowy rating dla gry: ' || r.title);
-            continue;
-        end if;
-        
-        if r.developer_founded_year is not null
-           and (r.developer_founded_year < 1800
-                or r.developer_founded_year > extract(year from sysdate)) then
-            v_cnt_errors := v_cnt_errors + 1;
-            insert into project_load_logs(event_type, message)
-            values (
-                'ERROR',
-                'Nieprawidłowy rok założenia developera: ' || r.developer
-            );
-            continue;
-        end if;
-        
-        if r.publisher_founded_year is not null
-            and (r.publisher_founded_year < 1800
-                or r.publisher_founded_year > extract(year from sysdate)) then
-            v_cnt_errors := v_cnt_errors + 1;
-            insert into project_load_logs(event_type, message)
-            values (
-                'ERROR',
-                'Nieprawidłowy rok założenia wydawcy: ' || r.publisher
-            );
+            project_log('ERROR', 'Brak tytułu gry');
             continue;
         end if;
         
         if r.sale_month is not null
             and (r.sale_month < 1 or r.sale_month > 12) then
             v_cnt_errors := v_cnt_errors + 1;
-            insert into project_load_logs(event_type, message)
-            values ('ERROR', 'Nieprawidłowy miesiąc sprzedaży: ' || r.sale_month);
+            project_log('ERROR', 'Nieprawidłowy miesiąc sprzedaży: ' || r.sale_month);
             continue;
         end if;
                 
 		if r.developer is null then
-            v_cnt_warnings := v_cnt_warnings + 1;
-            insert into project_load_logs(event_type, message)
-            values ('WARNING', 'Brak developera');
+            v_cnt_errors := v_cnt_errors + 1;
+            project_log('ERROR', 'Brak developera dla gry: ' || r.title);
+            continue;
         end if;
 		
 		if r.publisher is null then
-            v_cnt_warnings := v_cnt_warnings + 1;
-            insert into project_load_logs(event_type, message)
-            values ('WARNING', 'Brak wydawcy');
+            v_cnt_errors := v_cnt_errors + 1;
+            project_log('ERROR', 'Brak wydawcy dla gry: ' || r.title);
+            continue;
         end if;
 
         ------------------------------------------------------------------
@@ -248,15 +215,13 @@ begin
                     v_release_date := to_date(r.release_date, 'DD.MM.YYYY');
                 else
                     v_cnt_warnings := v_cnt_warnings + 1;
-                    insert into project_load_logs(event_type, message)
-                    values ('WARNING', 'Nieznany format daty: ' || r.release_date);
+                     project_log('WARNING', 'Nieznany format daty: ' || r.release_date);
                 end if;
             end if;
         exception
             when others then
                 v_cnt_errors := v_cnt_errors + 1;
-                insert into project_load_logs(event_type, message)
-                values ('ERROR', 'Błąd konwersji daty: ' || r.release_date);
+                project_log('ERROR', 'Błąd konwersji daty: ' || r.release_date);
                 continue;
         end;
 
@@ -433,16 +398,12 @@ begin
             
             if sql%rowcount = 1 then
                 v_cnt_sales_added := v_cnt_sales_added + 1;
-                insert into project_load_logs(event_type, message)
-                values (
-                    'INFO',
+                project_log('INFO', 
                     'Dodano sprzedaż: ' || r.title || ', ' || r.region || ' (' || r.sale_month || '.' || r.sale_year || ')'
                 );
             else
                 v_cnt_sales_existing := v_cnt_sales_existing + 1;
-                insert into project_load_logs(event_type, message)
-                values (
-                    'INFO',
+                project_log('INFO', 
                     'Sprzedaż już istniała – pominięta: ' || r.title || ', ' || r.region || ' (' || r.sale_month || '.' || r.sale_year || ')'
                 );
             end if;
@@ -452,33 +413,18 @@ begin
         -- LOG OK
         ------------------------------------------------------------------
         if v_game_inserted then
-            insert into project_load_logs(event_type, message)
-            values (
-                'INFO',
-                'Dodano nową grę: ' || r.title
-            );
+            project_log('INFO', 'Dodano nową grę: ' || r.title);
         
         elsif v_platform_inserted then
-            insert into project_load_logs(event_type, message)
-            values (
-                'INFO',
-                'Dodano nową platformę "' || r.platform ||
-                '" dla gry: ' || r.title
-            );
-        
+            project_log('INFO', 'Dodano nową platformę "' || r.platform || '" dla gry: ' || r.title);
+
         else
-            insert into project_load_logs(event_type, message)
-            values (
-                'INFO',
-                'Gra i platforma już istniały: ' ||
-                r.title || ' (' || r.platform || ')'
-            );
+            project_log('INFO', 'Gra i platforma już istniały: ' || r.title || ' (' || r.platform || ')');
         end if;
 
     end loop;
     
-    insert into project_load_logs(event_type, message)
-    values (
+    project_log(
         'INFO',
         'ETL summary: ' ||
         'new games=' || v_cnt_games_added ||
@@ -489,19 +435,13 @@ begin
         ', warnings=' || v_cnt_warnings ||
         ', errors=' || v_cnt_errors
     );
-
-    commit;
     
     EXECUTE IMMEDIATE 'TRUNCATE TABLE project_games_stage';
 
 exception
     when others then
         v_error_msg := SQLERRM;
-        insert into project_load_logs(event_type, message)
-        values (
-            'ERROR',
-            'ETL aborted: ' || v_error_msg
-        );
+        project_log('ERROR', 'ETL aborted: ' || v_error_msg);
         rollback;
         raise;
 end;
@@ -520,11 +460,7 @@ create or replace procedure project_add_game (
     v_game_id number;
     v_error_msg varchar2(4000);
 begin
-    if p_rating is not null and p_rating not between 0 and 100 then
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Nieprawidłowy rating gry: ' || p_title);
-        commit;
-    
+    if p_rating is not null and p_rating not between 0 and 100 then    
         raise_application_error(
             project_errors.c_invalid_rating,
             'Nieprawidłowy rating gry: ' || p_title
@@ -539,19 +475,14 @@ begin
     )
     returning game_id into v_game_id;
 
-    insert into project_load_logs(event_type, message)
-    values (
-        'INFO',
-        'Dodano grę: ' || p_title || ' (ID=' || v_game_id || ')'
-    );
+    project_log('INFO', 'Dodano grę: ' || p_title || ' (ID=' || v_game_id || ')');
 
     commit;
 
 exception
     when others then
         v_error_msg := SQLERRM;
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Coś poszło nie tak w trakcie dodawania gry: ' || p_title || '. ' || v_error_msg);
+        project_log('ERROR', 'Błąd podczas dodawania gry: ' || p_title || '. ' || v_error_msg);
         rollback;
         raise;
 end;
@@ -565,9 +496,6 @@ create or replace procedure project_update_game_rating (
     v_error_msg varchar2(4000);
 begin
     if p_new_rating is not null and p_new_rating not between 0 and 100 then
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Nieprawidłowy rating gry');
-        commit;
     
         raise_application_error(
             project_errors.c_invalid_rating,
@@ -579,30 +507,21 @@ begin
     set rating = p_new_rating
     where game_id = p_game_id;
 
-    if sql%rowcount = 0 then
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Gra nie istnieje ID=' || p_game_id);
-        commit;
-    
+    if sql%rowcount = 0 then    
         raise_application_error(
             project_errors.c_game_not_found,
             'Gra nie istnieje ID=' || p_game_id
         );
     end if;
 
-    insert into project_load_logs(event_type, message)
-    values (
-        'INFO',
-        'Zaktualizowano rating gry ID=' || p_game_id
-    );
+    project_log('INFO', 'Zaktualizowano rating gry ID=' || p_game_id);
 
     commit;
 
 exception
     when others then
         v_error_msg := SQLERRM;
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Coś poszło nie tak w trakcie aktualizowania gry: ' || p_game_id || '. ' || v_error_msg);
+        project_log('ERROR', 'Błąd podczas aktualizowania gry: ' || p_game_id || '. ' || v_error_msg);
         rollback;
         raise;
 end;
@@ -617,29 +536,21 @@ begin
     where game_id = p_game_id;
 
     if sql%rowcount = 0 then
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Gra nie istnieje ID=' || p_game_id);
-        commit;
-    
         raise_application_error(
             project_errors.c_game_not_found,
             'Gra nie istnieje ID=' || p_game_id
         );
     end if;
 
-    insert into project_load_logs(event_type, message)
-    values (
-        'INFO',
-        'Usunięto grę ID=' || p_game_id
-    );
+    project_log('INFO', 'Usunięto grę ID=' || p_game_id);
 
     commit;
 
 exception
     when others then
         v_error_msg := SQLERRM;
-        insert into project_load_logs(event_type, message)
-        values ('ERROR', 'Coś poszło nie tak w trakcie usuwania gry: ' || p_game_id || '. ' || v_error_msg);
+        project_log('ERROR', 'Błąd podczas usuwania gry: ' || p_game_id || '. ' || v_error_msg);
+
         rollback;
         raise;
 end;
@@ -659,6 +570,8 @@ begin
       and period_year = p_year
       and (game_id = p_game_id or p_game_id is null)
       and (region = p_region or p_region is null);
+
+
 
     ------------------------------------------------------------------
     -- ROCZNE
@@ -769,8 +682,20 @@ begin
         v_log_msg := v_log_msg || ', region=' || p_region;
     end if;
 
+    project_log('INFO', v_log_msg);
+    commit;
+end;
+/
+
+create or replace procedure project_log (
+    p_event_type varchar2,
+    p_message    varchar2
+) is
+    pragma autonomous_transaction;
+begin
     insert into project_load_logs(event_type, message)
-    values ('INFO', v_log_msg);
+    values (p_event_type, p_message);
+
     commit;
 end;
 /
@@ -909,6 +834,8 @@ from project_games g
 join project_sales s on s.game_id = g.game_id
 group by g.title;
 
+select * from project_v_game_sales_rank;
+
 create or replace view project_v_region_sales_rank as
 select
     s.region,
@@ -922,6 +849,7 @@ from project_sales s
 join project_games g on g.game_id = s.game_id
 group by s.region, g.title;
 
+select * from project_v_region_sales_rank;
 
 ------------------------------------------------------------------
 -- paczki
