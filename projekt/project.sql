@@ -430,11 +430,11 @@ begin
 
     commit;
     
-    --EXECUTE IMMEDIATE 'TRUNCATE TABLE project_games_stage';
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE project_games_stage';
 
 exception
     when others then
-        v_error_msg := sqlerrm;
+        v_error_msg := SQLERRM;
         insert into project_load_logs(event_type, message)
         values (
             'ERROR',
@@ -445,34 +445,301 @@ exception
 end;
 /
 
+------------------------------------------------------------------
+-- procedury
+------------------------------------------------------------------
+create or replace procedure project_add_game (
+    p_title         varchar2,
+    p_release_date  date     default null,
+    p_rating        number   default null,
+    p_developer_id  number,
+    p_publisher_id  number
+) is
+    v_game_id number;
+    v_error_msg varchar2(4000);
+begin
+    if p_rating is not null and (p_rating < 0 or p_rating > 100) then
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Nieprawidłowy rating gry: ' || p_title);
+        commit;
+    
+        raise_application_error(
+            project_errors.c_invalid_rating,
+            'Nieprawidłowy rating gry: ' || p_title
+        );
+    end if;
+
+    insert into project_games (
+        title, release_date, rating, developer_id, publisher_id
+    )
+    values (
+        p_title, p_release_date, p_rating, p_developer_id, p_publisher_id
+    )
+    returning game_id into v_game_id;
+
+    insert into project_load_logs(event_type, message)
+    values (
+        'INFO',
+        'Dodano grę: ' || p_title || ' (ID=' || v_game_id || ')'
+    );
+
+    commit;
+
+exception
+    when others then
+        v_error_msg := SQLERRM;
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Coś poszło nie tak w trakcie dodawania gry: ' || p_title || '. ' || v_error_msg);
+        rollback;
+        raise;
+end;
+/
+
+
+create or replace procedure project_update_game_rating (
+    p_game_id number,
+    p_new_rating number
+) is
+    v_error_msg varchar2(4000);
+begin
+    if p_new_rating is not null and (p_new_rating < 0 or p_new_rating > 100) then
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Nieprawidłowy rating gry');
+        commit;
+    
+        raise_application_error(
+            project_errors.c_invalid_rating,
+            'Nieprawidłowy rating gry'
+        );
+    end if;
+
+    update project_games
+    set rating = p_new_rating
+    where game_id = p_game_id;
+
+    if sql%rowcount = 0 then
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Gra nie istnieje ID=' || p_game_id);
+        commit;
+    
+        raise_application_error(
+            project_errors.c_game_not_found,
+            'Gra nie istnieje ID=' || p_game_id
+        );
+    end if;
+
+    insert into project_load_logs(event_type, message)
+    values (
+        'INFO',
+        'Zaktualizowano rating gry ID=' || p_game_id
+    );
+
+    commit;
+
+exception
+    when others then
+        v_error_msg := SQLERRM;
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Coś poszło nie tak w trakcie aktualizowania gry: ' || p_game_id || '. ' || v_error_msg);
+        rollback;
+        raise;
+end;
+/
+
+create or replace procedure project_delete_game (
+    p_game_id number
+) is
+    v_error_msg varchar2(4000);
+begin
+    delete from project_games
+    where game_id = p_game_id;
+
+    if sql%rowcount = 0 then
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Gra nie istnieje ID=' || p_game_id);
+        commit;
+    
+        raise_application_error(
+            project_errors.c_game_not_found,
+            'Gra nie istnieje ID=' || p_game_id
+        );
+    end if;
+
+    insert into project_load_logs(event_type, message)
+    values (
+        'INFO',
+        'Usunięto grę ID=' || p_game_id
+    );
+
+    commit;
+
+exception
+    when others then
+        v_error_msg := SQLERRM;
+        insert into project_load_logs(event_type, message)
+        values ('ERROR', 'Coś poszło nie tak w trakcie usuwania gry: ' || p_game_id || '. ' || v_error_msg);
+        rollback;
+        raise;
+end;
+/
+
+------------------------------------------------------------------
+-- funkcje
+------------------------------------------------------------------
+create or replace function project_get_avg_rating_by_dev (
+    p_developer_id number
+) return number is
+    v_avg number;
+begin
+    select nvl(avg(rating), 0)
+    into v_avg
+    from project_games
+    where developer_id = p_developer_id;
+
+    return v_avg;
+end;
+/
+
+create or replace function project_get_game_total_revenue (
+    p_game_id number
+) return number is
+    v_total number;
+begin
+    select nvl(sum(revenue), 0)
+    into v_total
+    from project_sales
+    where game_id = p_game_id;
+
+    return v_total;
+end;
+/
+
+create or replace function project_get_game_platform_count (
+    p_game_id number
+) return number is
+    v_cnt number;
+begin
+    select count(*)
+    into v_cnt
+    from project_game_platforms
+    where game_id = p_game_id;
+
+    return v_cnt;
+end;
+/
 
 ------------------------------------------------------------------
 -- triggery
 ------------------------------------------------------------------
-create or replace trigger trg_dev_founded_year
+create or replace trigger project_trg_dev_founded_year
 before insert or update on project_developers
 for each row
 begin
   if :new.founded_year is not null
      and :new.founded_year > extract(year from sysdate) then
     raise_application_error(
-      -20001,
+      project_errors.c_invalid_founded_year,
       'Rok założenia nie może być w przyszłości'
     );
   end if;
 end;
 /
 
-create or replace trigger trg_pub_founded_year
+create or replace trigger project_trg_pub_founded_year
 before insert or update on project_publishers
 for each row
 begin
   if :new.founded_year is not null
      and :new.founded_year > extract(year from sysdate) then
     raise_application_error(
-      -20001,
+      project_errors.c_invalid_founded_year,
       'Rok założenia nie może być w przyszłości'
     );
   end if;
 end;
 /
+
+create or replace trigger project_trg_archive_game
+before delete on project_games
+for each row
+begin
+    insert into project_data_archive (
+        source_type,
+        source_name,
+        raw_data
+    )
+    values (
+        'DELETE',
+        'project_games',
+        json_object(
+            'game_id' value :old.game_id,
+            'title' value :old.title,
+            'release_date' value :old.release_date,
+            'rating' value :old.rating,
+            'developer_id' value :old.developer_id,
+            'publisher_id' value :old.publisher_id
+        )
+    );
+end;
+/
+
+create or replace trigger project_trg_sales_year
+before insert or update on project_sales
+for each row
+declare
+    v_release_year number;
+begin
+    select extract(year from release_date)
+    into v_release_year
+    from project_games
+    where game_id = :new.game_id;
+
+    if :new.sale_year < v_release_year then
+        raise_application_error(
+            project_errors.c_invalid_sale_year,
+            'Rok sprzedaży nie może być wcześniejszy niż premiera gry'
+        );
+    end if;
+end;
+/
+
+------------------------------------------------------------------
+-- paczki
+------------------------------------------------------------------
+create or replace package project_errors is
+
+    -- walidacja danych
+    c_invalid_rating            constant number := -20001;
+    c_invalid_founded_year      constant number := -20002;
+    c_invalid_sale_year         constant number := -20003;
+    
+    -- logika biznesowa
+    c_game_not_found            constant number := -20101;
+end project_errors;
+/
+
+
+------------------------------------------------------------------
+-- widoki
+------------------------------------------------------------------
+create or replace view project_v_game_sales_rank as
+select
+    g.title,
+    sum(s.revenue) total_revenue,
+    rank() over (order by sum(s.revenue) desc) revenue_rank
+from project_games g
+join project_sales s on s.game_id = g.game_id
+group by g.title;
+
+create or replace view project_v_region_sales_rank as
+select
+    s.region,
+    g.title,
+    sum(s.units_sold) total_units,
+    dense_rank() over (
+        partition by s.region
+        order by sum(s.units_sold) desc
+    ) region_rank
+from project_sales s
+join project_games g on g.game_id = s.game_id
+group by s.region, g.title;
