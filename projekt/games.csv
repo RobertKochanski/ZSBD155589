@@ -1,7 +1,21 @@
-title;release_date;rating;developer;developer_founded_year;publisher;publisher_founded_year;platform;category;region;units_sold;revenue;sale_year
-The Witcher 3;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;4500000;180000000;2015
-The Witcher 3;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PS4;RPG;NA;4200000;168000000;2016
-Cyberpunk 2077;10.12.2020;86;CD Projekt Red;2002;CD Projekt;1994;PC;Action;Global;13000000;780000000;2020
-God of War;20.04.2018;94;Santa Monica Studio;1999;Sony Interactive Entertainment;1993;PS4;Action;NA;5000000;250000000;2018
-Zelda BOTW;3.03.2017;97;Nintendo EPD;2015;Nintendo;1889;Switch;Adventure;Global;3000000;180000000;2017
-;1.01.2021;;Unknown Dev;3000;Unknown Pub;1234;PC;Action, cat1, cat2;;;;
+title;release_date;rating;developer;developer_founded_year;publisher;publisher_founded_year;platform;category;region;units_sold;revenue;sale_year;sale_month
+Cyberpunk 2077;10.12.2020;86;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;180000;5400000;2022;3
+Cyberpunk 2077;10.12.2020;86;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;170000;5100000;2022;4
+Cyberpunk 2077;10.12.2020;86;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;NA;190000;5700000;2022;3
+Elden Ring;25.02.2022;96;FromSoftware;1986;Bandai Namco Entertainment;1950;PC;RPG;EU;260000;7800000;2022;2
+Elden Ring;25.02.2022;96;FromSoftware;1986;Bandai Namco Entertainment;1950;PC;RPG;NA;280000;8400000;2022;2
+Elden Ring;25.02.2022;96;FromSoftware;1986;Bandai Namco Entertainment;1950;PC;RPG;EU;240000;7200000;2022;3
+Grand Theft Auto V;17.09.2013;97;Rockstar North;1988;Rockstar Games;1998;PC;Action;EU;300000;9000000;2022;1
+Grand Theft Auto V;17.09.2013;97;Rockstar North;1988;Rockstar Games;1998;PC;Action;EU;280000;8400000;2022;2
+Grand Theft Auto V;17.09.2013;97;Rockstar North;1988;Rockstar Games;1998;PC;Action;NA;320000;9600000;2022;1
+Grand Theft Auto V;17.09.2013;97;Rockstar North;1988;Rockstar Games;1998;PC;Action;NA;310000;9300000;2022;2
+Minecraft;18.11.2011;93;Mojang Studios;2009;Microsoft Studios;1975;PC;Sandbox;EU;400000;8000000;2022;1
+Minecraft;18.11.2011;93;Mojang Studios;2009;Microsoft Studios;1975;PC;Sandbox;EU;380000;7600000;2022;2
+Minecraft;18.11.2011;93;Mojang Studios;2009;Microsoft Studios;1975;PC;Sandbox;NA;420000;8400000;2022;1
+Red Dead Redemption 2;26.10.2018;97;Rockstar Studios;2008;Rockstar Games;1998;PC;Action;EU;210000;6300000;2022;3
+Red Dead Redemption 2;26.10.2018;97;Rockstar Studios;2008;Rockstar Games;1998;PC;Action;EU;220000;6600000;2022;4
+Red Dead Redemption 2;26.10.2018;97;Rockstar Studios;2008;Rockstar Games;1998;PC;Action;NA;240000;7200000;2022;3
+The Witcher 3: Wild Hunt;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;250000;7500000;2022;1
+The Witcher 3: Wild Hunt;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;EU;230000;6900000;2022;2
+The Witcher 3: Wild Hunt;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;NA;200000;6000000;2022;1
+The Witcher 3: Wild Hunt;19.05.2015;93;CD Projekt Red;2002;CD Projekt;1994;PC;RPG;NA;210000;6300000;2022;2

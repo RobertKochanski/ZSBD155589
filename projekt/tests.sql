@@ -1,4 +1,5 @@
 -- CZYSZCZENIE DANYCH Z BAZY 
+delete from project_sales_summary;
 delete from project_game_categories;
 delete from project_game_platforms;
 delete from project_sales;
@@ -12,7 +13,6 @@ delete from project_data_archive;
 delete from project_load_logs;
 
 
-
 select * from project_games_stage;
 
 -- załadowanie danych i ich walidacja
@@ -22,24 +22,22 @@ end;
 /
 
 -- czy dane się załadowały
-select *
-from project_games;
+select * from project_games;
+select * from project_sales;
+
+select * from project_publishers;
+select * from project_developers;
 
 -- czy platformy/kategorie wgrały się prawidłowo
-select *
-from project_platforms;
-
-select *
-from project_categories;
+select * from project_platforms;
+select * from project_categories;
 
 -- czy dane zostały zarchiwizowane
-select *
-from project_data_archive
+select * from project_data_archive
 order by archive_id desc;
 
 -- czy logi się zapisały
-select * 
-from project_load_logs
+select * from project_load_logs
 order by log_id desc;
 
 -- czy dane sales zostały wgrane
@@ -55,16 +53,16 @@ begin
 --        p_title        => 'Test Game 1',
 --        p_release_date => date '2024-05-10',
 --        p_rating       => 85,
---        p_developer_id => 5,
---        p_publisher_id => 5
+--        p_developer_id => 47,
+--        p_publisher_id => 42
 --    );
     
     project_add_game(
         p_title        => 'Bad rating game',
         p_release_date => date '2024-05-10',
         p_rating       => 111,
-        p_developer_id => 5,
-        p_publisher_id => 5
+        p_developer_id => 47,
+        p_publisher_id => 42
     );
 end;
 /
@@ -85,3 +83,55 @@ begin
     );
 end;
 /
+
+-- czy sales_summary działa
+-- roczne
+begin
+    project_build_sales_summary('YEAR', 2022);
+end;
+/
+
+select period_year, sum(total_revenue)
+from project_sales_summary
+where period_type = 'YEAR'
+group by period_year;
+
+-- kwartalne
+begin
+    project_build_sales_summary('QUARTER', 2022);
+end;
+/
+
+select period_value as quarter, sum(total_units)
+from project_sales_summary
+where period_type = 'QUARTER'
+  and period_year = 2022
+group by period_value
+order by quarter;
+
+-- miesięczne
+begin
+    project_build_sales_summary('MONTH', 2022);
+end;
+/
+
+select period_value as month, sum(total_revenue)
+from project_sales_summary
+where period_type = 'MONTH'
+  and period_year = 2022
+group by period_value
+order by month;
+
+select period_value, period_type, period_year, sum(total_revenue) from project_sales_summary
+where period_type='YEAR'
+group by period_value, period_type, period_year;
+
+
+-- miesięczne zestawienie z 2022 roku dla gry o id 30
+begin
+    project_build_sales_summary('MONTH', 2022, 30);
+end;
+/
+select period_value, period_type, period_year, sum(total_revenue) from project_sales_summary
+where period_type='MONTH' and game_id = 30
+group by period_value, period_type, period_year;
