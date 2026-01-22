@@ -184,7 +184,7 @@ begin
             continue;
         end if;
         
-        if r.rating is not null and (r.rating < 0 or r.rating > 100) then
+        if r.rating is not null and r.rating not between 0 and 100 then
             v_cnt_errors := v_cnt_errors + 1;
             insert into project_load_logs(event_type, message)
             values ('ERROR', 'Nieprawidłowy rating dla gry: ' || r.title);
@@ -227,14 +227,12 @@ begin
             v_cnt_warnings := v_cnt_warnings + 1;
             insert into project_load_logs(event_type, message)
             values ('WARNING', 'Brak developera');
-            continue;
         end if;
 		
 		if r.publisher is null then
             v_cnt_warnings := v_cnt_warnings + 1;
             insert into project_load_logs(event_type, message)
             values ('WARNING', 'Brak wydawcy');
-            continue;
         end if;
 
         ------------------------------------------------------------------
@@ -428,8 +426,7 @@ begin
                     game_id, region, sale_year, sale_month, units_sold, revenue
                 )
                 values (
-                    src.game_id, src.region, src.sale_year, 
-                    nvl(src.sale_month, 1),
+                    src.game_id, src.region, src.sale_year, src.sale_month,
                     nvl(src.units_sold, 0),
                     nvl(src.revenue, 0)
                 );
@@ -523,7 +520,7 @@ create or replace procedure project_add_game (
     v_game_id number;
     v_error_msg varchar2(4000);
 begin
-    if p_rating is not null and (p_rating < 0 or p_rating > 100) then
+    if p_rating is not null and p_rating not between 0 and 100 then
         insert into project_load_logs(event_type, message)
         values ('ERROR', 'Nieprawidłowy rating gry: ' || p_title);
         commit;
@@ -567,7 +564,7 @@ create or replace procedure project_update_game_rating (
 ) is
     v_error_msg varchar2(4000);
 begin
-    if p_new_rating is not null and (p_new_rating < 0 or p_new_rating > 100) then
+    if p_new_rating is not null and p_new_rating not between 0 and 100 then
         insert into project_load_logs(event_type, message)
         values ('ERROR', 'Nieprawidłowy rating gry');
         commit;
